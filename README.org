@@ -1,0 +1,1 @@
+Code for computing bisect data in [[https://github.com/Rdatatable/data.table/pull/7912][PR7912]].
