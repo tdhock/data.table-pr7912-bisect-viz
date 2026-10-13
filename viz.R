@@ -5,7 +5,7 @@ dot.dt.list <- list()
 common.dt.list <- list()
 results.dt.list <- list()
 version.stats.dt.list <- list()
-(Bisect.dir.vec <- Sys.glob("data/tdhock-MacBook/bisect-10s-lim0.01/DT_by__fixed_in__4558/*"))
+(Bisect.dir.vec <- Sys.glob("data/tdhock-MacBook/bisect-2s-lim0.1/DT_by__fixed_in__4558/*"))
 age.colors <- c(
   old="violet",
   between="blue",
@@ -79,7 +79,7 @@ ggplot()+
 (ref.dt <- fread("refs.csv"))
 (rank.dt <- unique(rbind(
   results.dt[, .(time, commit)],
-  ref.dt[, .(time, commit)]
+  ref.dt[Rname %in% results.dt$version, .(time, commit)]
 ))[order(time)][, rank := .I][, .(commit, rank)])
 results.rank <- rank.dt[results.dt, on="commit"]
 HEAD.dt <- results.rank[version=="HEAD"]
@@ -122,6 +122,51 @@ ggplot()+
     rank, value_median, color=age),
     data=med.line.dt)+
   facet_grid(variable ~ ., scales="free")
+
+ref.rank <- rank.dt[
+  ref.dt,
+  on="commit",
+  nomatch=0L
+][!c("Parent4558","PR7401"), on="Rname"][, y := 5.25-.I*0.3]
+ggplot()+
+  theme_bw()+
+  geom_hline(aes(
+    yintercept=rank),
+    color="grey",
+    data=ref.rank)+
+  geom_path(aes(
+    value_median, rank),
+    data=med.line.dt[variable=="log10_N"])+
+  geom_text(aes(
+    -Inf, rank, label=Rname,
+    vjust=ifelse(grepl("Parent",Rname), 1, 0)),
+    data=ref.rank,
+    hjust=0,
+    color="grey50")
+
+(limit.dt <- data.table(seconds=tpred$seconds.limit))
+gg <- ggplot()+
+  ggtitle("Recent changes in performance, one test case for R data.table")+
+  theme_bw()+
+  geom_vline(aes(
+    xintercept=rank),
+    color="grey",
+    data=ref.rank)+
+  geom_path(aes(
+    rank, 10^value_median),
+    data=med.line.dt[variable=="log10_N"])+
+  geom_text(aes(
+    rank, 10^y, label=sprintf(
+      "%s\n%s", Rname, strftime(time, "%Y-%m-%d")),
+      hjust=ifelse(grepl("Parent|Fas",Rname), 1, 0)),
+    data=ref.rank,
+    vjust=0,
+    color="grey50")+
+  scale_y_log10(sprintf("N = throughput at %s seconds", paste(limit.dt$seconds)))+
+  scale_x_continuous("Commit rank over time")
+png("viz-PR7912-timeline.png", width=8, height=4, units="in", res=200)
+print(gg)
+dev.off()
 
 HEAD.N <- HEAD.dt[variable=="log10_N"]
 HEAD.N.stats <- dcast(
@@ -170,7 +215,6 @@ norm01 <- function(DT)DT[
 (lines.zoom <- norm01(Bisect.range[med.line.dt, .(
   Bisect, rank=i.rank, variable, value=value_median, age
 ), on=.(rank_min<=rank, rank_max>=rank), nomatch=0L]))
-(limit.dt <- data.table(seconds=tpred$seconds.limit))
 bg.color <- "grey"
 viz <- animint(
   out.dir="viz",
