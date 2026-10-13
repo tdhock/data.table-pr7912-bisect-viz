@@ -68,13 +68,32 @@ St <- function(s)factor(s, names(status.colors))
   Status = St(status)
 )][])
 
-timeline.dt <- results.dt[, .SD[1], by=.(Bisect, commit, start, end)]
+timeline.dt <- results.dt[
+, .SD[1]
+, by=.(Bisect, commit, start, end)
+][order(start)][
+, bisect := factor(Bisect, unique(Bisect))
+][]
 to.min <- function(x, start)(x-min(start))/60
-ggplot()+
+gg <- ggplot()+
+  theme_bw()+
   geom_segment(aes(
-    to.min(start, start), Bisect,
-    xend=to.min(end, start), yend=Bisect),
-    data=timeline.dt)
+    to.min(start, start), bisect,
+    xend=to.min(end, start), yend=bisect),
+    size=1,
+    data=timeline.dt)+
+  geom_point(aes(
+    to.min(start, start), bisect),
+    shape=1,
+    data=timeline.dt)+
+  scale_y_discrete(
+    "Bisect run (old-new)")+
+  scale_x_continuous(
+    "Minutes from start of first git bisect (dot at start of each version tested)")
+png("viz-PR7912-minutes.png", width=8, height=2, units="in", res=200)
+print(gg)
+dev.off()
+
 
 (ref.dt <- fread("refs.csv"))
 (rank.dt <- unique(rbind(
