@@ -5,6 +5,7 @@ dot.dt.list <- list()
 common.dt.list <- list()
 results.dt.list <- list()
 (Bisect.dir.vec <- Sys.glob("data/tdhock-MacBook/bisect-2s-lim0.1/DT_by__fixed_in__4558/*"))
+(Bisect.dir.vec <- Sys.glob("data/dinf-thock-02i/bisect-2s-lim0.1/DT_by__fixed_in__4558/*"))
 age.colors <- c(
   old="violet",
   between="blue",
@@ -86,10 +87,11 @@ gg <- ggplot()+
     "Bisect run (old-new)")+
   scale_x_continuous(
     "Minutes from start of first git bisect (dot at start of each version tested)")
-png("viz-PR7912-minutes.png", width=8, height=2, units="in", res=200)
-print(gg)
-dev.off()
-
+if(FALSE){
+  png("viz-PR7912-minutes.png", width=8, height=2, units="in", res=200)
+  print(gg)
+  dev.off()
+}
 
 (ref.dt <- fread("refs.csv"))
 (rank.dt <- unique(rbind(
@@ -175,9 +177,11 @@ gg <- ggplot()+
     color="grey50")+
   scale_y_log10(sprintf("N = throughput at %s seconds", paste(limit.dt$seconds)))+
   scale_x_continuous("Commit rank over time")
-png("viz-PR7912-timeline.png", width=8, height=4, units="in", res=200)
-print(gg)
-dev.off()
+if(FALSE){
+  png("viz-PR7912-timeline.png", width=8, height=4, units="in", res=200)
+  print(gg)
+  dev.off()
+}
 
 HEAD.N <- HEAD.dt[variable=="log10_N"]
 HEAD.N.stats <- dcast(
