@@ -4,7 +4,6 @@ details.dt.list <- list()
 dot.dt.list <- list()
 common.dt.list <- list()
 results.dt.list <- list()
-version.stats.dt.list <- list()
 (Bisect.dir.vec <- Sys.glob("data/tdhock-MacBook/bisect-2s-lim0.1/DT_by__fixed_in__4558/*"))
 age.colors <- c(
   old="violet",
@@ -26,8 +25,6 @@ for(Bisect.dir in Bisect.dir.vec){
   version.meta <- Test_commits_long[, .(
     version=c(version, "HEAD"),
     age=c(age, Age("between")))]
-  version_stats <- fread(file.path(Bisect.dir, "version_stats.csv"))
-  version.stats.dt.list[[Bisect.dir]] <- Bisect(version.meta[version_stats, on="version"])
   for(csv in Sys.glob(file.path(Bisect.dir, "csv", "*"))){
     result.row <- Commit(fread(csv))
     results.dt.list[[csv]] <- melt( 
@@ -58,7 +55,6 @@ for(Bisect.dir in Bisect.dir.vec){
 (details.dt <- rbindlist(details.dt.list))
 (dot.dt <- rbindlist(dot.dt.list))
 (common.dt <- rbindlist(common.dt.list))
-(version.stats.dt <- rbindlist(version.stats.dt.list))
 status.colors <- c(
   "0"="black",
   change="grey50",
@@ -103,10 +99,6 @@ dev.off()
 results.rank <- rank.dt[results.dt, on="commit"]
 HEAD.dt <- results.rank[version=="HEAD"]
 
-(version.stats.rank <- rank.dt[
-  ref.dt[version.stats.dt, on=.(Rname=version)],
-  on="commit"])
-  
 HEAD.stats <- dcast(HEAD.dt, rank + commit + time + variable + age ~ ., list(min, median, max, length))
 ggplot()+
   geom_ribbon(aes(
@@ -267,13 +259,6 @@ viz <- animint(
       showSelected=c("Bisect","Status"),
       data=data.table(change.dt, Status=St("change")))+
     geom_segment(aes(
-      rank, log10_N_hi,
-      xend=rank, yend=log10_N_lo,
-      key=age,
-      color=age),
-      showSelected=c("Bisect", "age"),
-      data=data.table(version.stats.rank)[, panel := "log10_N"])+
-    geom_segment(aes(
       ifelse(age=="old", rank_old, rank_min), med_value,
       xend=ifelse(age=="old", rank_max, rank_new), yend=med_value,
       key=age,
@@ -406,10 +391,10 @@ viz <- animint(
       vjust=0,
       data=common.dt,
       showSelected="Commit")+
-    scale_x_log10("N = number of columns in CSV file")+
+    scale_x_log10("N = data size")+
     scale_color_manual(values=age.colors)+
     scale_fill_manual(values=age.colors)+
-    scale_y_log10("Seconds to fread(file.csv)"),
+    scale_y_log10("Computation time (seconds)"),
   zoom=ggplot()+
     ggtitle("Zoom to bisect, relative values")+
     theme_bw()+
@@ -462,5 +447,6 @@ viz <- animint(
 viz
 
 if(FALSE){
+  animint2pages(viz, "2026-10-13-bisect-performance-pr7912", chromote_sleep_seconds=3)
   animint2pages(viz, "2026-10-13-bisect-performance-pr7912-log10-lim0.01sec", chromote_sleep_seconds=3)
 }
