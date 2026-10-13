@@ -1,6 +1,6 @@
 library(data.table)
-src.dir <- normalizePath("~/R/data.table/.ci/atime/bisect/DT_by__fixed_in__4558")
-data.dir <- file.path("data", system("hostname", intern=TRUE))
+src.dir <- normalizePath("~/R/data.table/.ci/atime/bisect-2s-lim0.1/DT_by__fixed_in__4558")
+data.dir <- file.path("data", system("hostname", intern=TRUE), basename(dirname(src.dir)))
 unlink(data.dir, recursive = TRUE)
 dir.create(data.dir, showWarnings = FALSE, recursive = TRUE)
 file.copy(src.dir, data.dir, recursive = TRUE)

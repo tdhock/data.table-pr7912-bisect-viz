@@ -1,14 +1,11 @@
-data.dir <- file.path("data", system("hostname", intern=TRUE))
-(Bisect.dir.vec <- Sys.glob(file.path(data.dir, "*")))
-
+library(animint2)
 library(data.table)
 details.dt.list <- list()
 dot.dt.list <- list()
 common.dt.list <- list()
 results.dt.list <- list()
 version.stats.dt.list <- list()
-Bisect.dir.vec <- Sys.glob("data/tdhock-MacBook/DT_by__fixed_in__4558/*")
-Bisect.dir <- "data/tdhock-MacBook/DT_by__fixed_in__4558_Before_Parent4558"
+(Bisect.dir.vec <- Sys.glob("data/tdhock-MacBook/bisect-2s-lim0.1/DT_by__fixed_in__4558/*"))
 age.colors <- c(
   old="violet",
   between="blue",
@@ -17,7 +14,8 @@ Age <- function(age)factor(age, names(age.colors))
 for(Bisect.dir in Bisect.dir.vec){
   Bisect <- function(dt)dt[
   , Bisect := basename(Bisect.dir)
-  ][
+  ][]
+  Commit <- function(dt)Bisect(dt)[
   , Commit := paste(Bisect, commit)
   ][]
   Test_commits <- fread(file.path(Bisect.dir, "Test_commits.csv"))
@@ -31,7 +29,7 @@ for(Bisect.dir in Bisect.dir.vec){
   version_stats <- fread(file.path(Bisect.dir, "version_stats.csv"))
   version.stats.dt.list[[Bisect.dir]] <- Bisect(version.meta[version_stats, on="version"])
   for(csv in Sys.glob(file.path(Bisect.dir, "csv", "*"))){
-    result.row <- Bisect(fread(csv))
+    result.row <- Commit(fread(csv))
     results.dt.list[[csv]] <- melt( 
       result.row,
       measure.vars=measure(variable, version, sep=".")
@@ -40,16 +38,16 @@ for(Bisect.dir in Bisect.dir.vec){
   for(result.RData in Sys.glob(file.path(Bisect.dir, "RData", "*"))){
     (objs <- load(result.RData))
     commit <- sub(".RData", "", basename(result.RData))
-    details <- Bisect(tres.or.status$measurements[, data.table(
+    details <- Commit(tres.or.status$measurements[, data.table(
       commit, version=expr.name, N, median, min, max)
     ])[version.meta, on="version"]
-    (common.dt.list[[paste(Bisect.dir, commit)]] <- Bisect(details[, .(
+    (common.dt.list[[paste(Bisect.dir, commit)]] <- Commit(details[, .(
       versions=.N
     ), by=N][
       versions==max(versions)
     ][.N, data.table(commit, N)]))
     details.dt.list[[paste(Bisect.dir, commit)]] <- details
-    dot.dt.list[[paste(Bisect.dir, commit)]] <- Bisect(tpred$prediction[, data.table(
+    dot.dt.list[[paste(Bisect.dir, commit)]] <- Commit(tpred$prediction[, data.table(
       commit,
       unit.value,
       version=expr.name,
@@ -70,6 +68,14 @@ St <- function(s)factor(s, names(status.colors))
   Status = St(status)
 )][])
 
+timeline.dt <- results.dt[, .SD[1], by=.(Bisect, commit, start, end)]
+to.min <- function(x, start)(x-min(start))/60
+ggplot()+
+  geom_segment(aes(
+    to.min(start, start), Bisect,
+    xend=to.min(end, start), yend=Bisect),
+    data=timeline.dt)
+
 (ref.dt <- fread("refs.csv"))
 (rank.dt <- unique(rbind(
   results.dt[, .(time, commit)],
@@ -83,7 +89,6 @@ HEAD.dt <- results.rank[version=="HEAD"]
   on="commit"])
   
 HEAD.stats <- dcast(HEAD.dt, rank + commit + time + variable + age ~ ., list(min, median, max, length))
-library(animint2)
 ggplot()+
   geom_ribbon(aes(
     rank,
@@ -166,8 +171,9 @@ norm01 <- function(DT)DT[
   Bisect, rank=i.rank, variable, value=value_median, age
 ), on=.(rank_min<=rank, rank_max>=rank), nomatch=0L]))
 (limit.dt <- data.table(seconds=tpred$seconds.limit))
-animint(
+viz <- animint(
   out.dir="viz",
+  title="data.table git bisect performance analysis",
   bisects=ggplot()+
     ggtitle("Overview of all commits tested, select bisect")+
     theme_bw()+
@@ -334,7 +340,7 @@ animint(
       data=common.dt,
       showSelected="Commit")+
     scale_x_log10("N = number of columns in CSV file")+
-    coord_cartesian(ylim=c(0.003, 0.02))+
+    coord_cartesian(ylim=c(0.001, 0.2))+
     scale_color_manual(values=age.colors)+
     scale_fill_manual(values=age.colors)+
     scale_y_log10("Seconds to fread(file.csv)"),
@@ -387,4 +393,5 @@ animint(
     Commit=1000,
     Bisect=1000)
 )
-
+if(FALSE){
+}
