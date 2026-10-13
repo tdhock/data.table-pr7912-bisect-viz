@@ -5,7 +5,7 @@ dot.dt.list <- list()
 common.dt.list <- list()
 results.dt.list <- list()
 version.stats.dt.list <- list()
-(Bisect.dir.vec <- Sys.glob("data/tdhock-MacBook/bisect-2s-lim0.1/DT_by__fixed_in__4558/*"))
+(Bisect.dir.vec <- Sys.glob("data/tdhock-MacBook/bisect-10s-lim0.01/DT_by__fixed_in__4558/*"))
 age.colors <- c(
   old="violet",
   between="blue",
@@ -61,7 +61,7 @@ for(Bisect.dir in Bisect.dir.vec){
 (version.stats.dt <- rbindlist(version.stats.dt.list))
 status.colors <- c(
   "0"="black",
-  change="grey",
+  change="grey50",
   "1"="white")
 St <- function(s)factor(s, names(status.colors))
 (results.dt <- rbindlist(results.dt.list)[, let(
@@ -171,9 +171,11 @@ norm01 <- function(DT)DT[
   Bisect, rank=i.rank, variable, value=value_median, age
 ), on=.(rank_min<=rank, rank_max>=rank), nomatch=0L]))
 (limit.dt <- data.table(seconds=tpred$seconds.limit))
+bg.color <- "grey"
 viz <- animint(
   out.dir="viz",
-  title="data.table git bisect performance analysis",
+  title="data.table git bisect performance analysis for PR7912, 0.01 sec time limit, N on log10 scale",
+  source="https://github.com/tdhock/data.table-pr7912-bisect-viz/blob/main/viz.R",
   bisects=ggplot()+
     ggtitle("Overview of all commits tested, select bisect")+
     theme_bw()+
@@ -192,9 +194,8 @@ viz <- animint(
       xmin=rank-0.5, xmax=rank+0.5,
       key=rank),
       showSelected="Bisect",
-      alpha=1,
-      color="grey",
-      fill="grey",
+      color=bg.color,
+      fill=bg.color,
       data=data.table(HEAD.dt)[, panel := variable])+
     geom_vline(aes(
       xintercept=rank_change,
@@ -231,6 +232,7 @@ viz <- animint(
     geom_point(aes(
       rank, y, color=age),
       clickSelects=c("age","Bisect"),
+      size=4,
       data=data.table(Bisect.ext, panel = "Bisect"))+
     geom_segment(aes(
       x=rank_min, xend=rank_max,
@@ -254,6 +256,7 @@ viz <- animint(
       key=paste(rank, age),
       fill=Status,
       color=age),
+      size=3,
       showSelected=c("Status", "age","Bisect"),
       data=data.table(results.rank)[, panel := variable])+
     geom_tallrect(aes(
@@ -321,6 +324,7 @@ viz <- animint(
       key=age, color=age),
       showSelected=c("age","Commit"),
       fill="white",
+      size=3,
       data=dot.dt)+
     geom_label_aligned(aes(
       N, unit.value, label=age,
@@ -340,7 +344,6 @@ viz <- animint(
       data=common.dt,
       showSelected="Commit")+
     scale_x_log10("N = number of columns in CSV file")+
-    coord_cartesian(ylim=c(0.001, 0.2))+
     scale_color_manual(values=age.colors)+
     scale_fill_manual(values=age.colors)+
     scale_y_log10("Seconds to fread(file.csv)"),
@@ -352,9 +355,8 @@ viz <- animint(
       xmin=rank_rel-0.5, xmax=rank_rel+0.5,
       key=rank_rel),
       showSelected="Bisect",
-      alpha=1,
-      color="grey",
-      fill="grey",
+      color=bg.color,
+      fill=bg.color,
       data=points.zoom[version=="HEAD"])+
     geom_line(aes(
       rank_rel, value_norm, color=age,
@@ -367,6 +369,7 @@ viz <- animint(
       key=paste(rank, age),
       fill=Status,
       color=age),
+      size=3,
       showSelected="Bisect",
       data=points.zoom)+
     coord_cartesian(ylim=c(0,1))+
@@ -393,5 +396,8 @@ viz <- animint(
     Commit=1000,
     Bisect=1000)
 )
+viz
+
 if(FALSE){
+  animint2pages(viz, "2026-10-13-bisect-performance-pr7912-log10-lim0.01sec", chromote_sleep_seconds=3)
 }
