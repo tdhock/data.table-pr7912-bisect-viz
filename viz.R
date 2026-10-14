@@ -302,7 +302,8 @@ viz <- animint(
       showSelected="Bisect",
       data=data.table(Bisect.range, panel = "Bisect"))+
     geom_point(aes(
-      rank, y, color=age),
+      rank, y, color=age,
+      key=paste(Bisect, age)),
       clickSelects="Bisect",
       alpha_off=0.3,
       showSelected="age",
@@ -323,7 +324,8 @@ viz <- animint(
       size=5,
       data=data.table(change.dt, panel = "Bisect", Status=St("change")))+
     geom_line(aes(
-      rank, value_median, color=age),
+      rank, value_median, color=age,
+      key=1),
       size=line.size,
       showSelected="age",
       data=data.table(med.line.dt)[, panel := variable])+
