@@ -4,17 +4,25 @@ details.dt.list <- list()
 dot.dt.list <- list()
 common.dt.list <- list()
 results.dt.list <- list()
-(Bisect.dir.vec <- Sys.glob("data/*/bisect-2s-lim0.1/DT_by__fixed_in__4558/*"))
+Bisect.dir.vec <- grep(
+  "install|cache",
+  Sys.glob("data/*/bisect-2s-lim0.1-*/DT_by__fixed_in__4558/*"),
+  value=TRUE)
+Bisect.dir.vec <- Sys.glob("data/*/bisect-2s-lim0.1/DT_by__fixed_in__4558/*")
 age.colors <- c(
   old="violet",
   between="blue",
   new="red")
+print(Bisect.dir.vec)
 Age <- function(age)factor(age, names(age.colors))
 for(Bisect.dir in Bisect.dir.vec){
+  run.dir <- dirname(dirname(Bisect.dir))
+  host.dir <- dirname(run.dir)
   Bisect <- function(dt)dt[, let(
     Bisect = basename(Bisect.dir),
+    run = sub(".*-", "", run.dir),
     host_year = ifelse(
-      grepl("dinf", basename(dirname(dirname(dirname(Bisect.dir))))),
+      grepl("dinf", basename(host.dir)),
       "2025", "2010")
   )][]
   Commit <- function(dt)Bisect(dt)[
@@ -67,6 +75,24 @@ St <- function(s)factor(s, names(status.colors))
   Status = St(status)
 )][])
 
+min.common.N <- min(common.dt$N)
+min.common.N <- 2^8
+min.common.N <- 2^16
+min.common.N <- 2^12
+details.common.N <- rank.dt[
+  details.dt[N==min.common.N & version=="HEAD"],
+  on="commit"]
+stats.common.N <- dcast(
+  details.common.N,
+  host_year + run + rank ~ .,
+  list(median, length),
+  value.var="median")
+ggplot()+
+  geom_line(aes(
+    rank, median_median, color=host_year),
+    data=stats.common.N)+
+  scale_y_log10()
+
 to.min <- function(x, start)(x-min(start))/60
 timeline.dt <- results.dt[
 , .SD[1]
@@ -76,7 +102,7 @@ timeline.dt <- results.dt[
 ][, let(
   rstart=to.min(start, start),
   rend=to.min(end, start)
-), by=host_year][]
+), by=.(host_year, run)][]
 gg <- ggplot()+
   theme_bw()+
   geom_segment(aes(
@@ -92,7 +118,7 @@ gg <- ggplot()+
     "Bisect run (old-new)")+
   scale_x_continuous(
     "Minutes from start of first git bisect (dot at start of each version tested)")+
-  facet_grid(host_year ~ ., labeller=label_both)
+  facet_grid(host_year + run ~ ., labeller=label_both)
 png("computers-PR7912-minutes.png", width=8, height=3, units="in", res=200)
 print(gg)
 dev.off()
@@ -124,14 +150,14 @@ ggplot()+
 
 not.HEAD <- rank.dt[
   ref.dt[
-    results.rank[version!="HEAD"][, .(host_year, Rname=version, variable, value)],
+    results.rank[version!="HEAD"][, .(host_year, run, Rname=version, variable, value)],
     on="Rname"],
   on="commit"]
 med.line.list <- list(not.HEAD, HEAD.dt)
 (med.line.dt <- dcast(rbindlist(lapply(
   med.line.list,
-  function(DT)DT[, c("host_year", "rank", "variable", "value")])),
-  host_year + rank + variable ~ .,
+  function(DT)DT[, c("host_year", "run", "rank", "variable", "value")])),
+  host_year + run + rank + variable ~ .,
   list(median, length)
   )[, age := Age("between")][])
 ggplot()+
@@ -171,7 +197,7 @@ gg <- ggplot()+
     color="grey",
     data=ref.rank)+
   geom_path(aes(
-    rank, 10^value_median, color=host_year),
+    rank, 10^value_median, color=host_year, group=paste(host_year, run)),
     data=med.line.dt[variable=="log10_N"])+
   geom_text(aes(
     rank, 10^y, label=sprintf(
@@ -185,5 +211,50 @@ gg <- ggplot()+
   scale_x_continuous("Commit rank over time")
 (dl <- directlabels::direct.label(gg, "right.polygons"))
 png("computers-PR7912-timeline.png", width=8, height=4, units="in", res=200)
+print(dl)
+dev.off()
+
+compare.dt <- rbind(
+  med.line.dt[variable=="log10_N", .(
+    rank, variable="N@0.1sec", value=10^value_median, host_year, run)],
+  stats.common.N[, .(
+    rank, variable=paste0("seconds@N=", min.common.N), value=median_median, host_year, run
+  )]
+)[order(rank)]
+ref.rank <- rank.dt[
+  ref.dt,
+  on="commit",
+  nomatch=0L
+][grep("PR|Bef|Fast", Rname)]
+gg <- ggplot()+
+  ggtitle("Recent changes in performance, one test case for R data.table")+
+  theme_bw()+
+  geom_vline(aes(
+    xintercept=rank),
+    color="grey",
+    data=ref.rank)+
+  geom_line(aes(
+    rank, value, color=host_year, group=paste(host_year, run)),
+    data=compare.dt)+
+  geom_point(aes(
+    rank, value, color=host_year, group=paste(host_year, run)),
+    data=compare.dt)+
+  facet_grid(variable ~ ., scales="free")+
+  directlabels::geom_dl(aes(
+    rank, 0.045, label=sprintf(
+      "%s\n%s", Rname, strftime(time, "%Y-%m-%d"))),
+    data=data.table(variable="seconds@N=4096", ref.rank[rank>40]),
+    method=list(cex=0.7, "top.polygons"),
+    color="grey50")+
+  directlabels::geom_dl(aes(
+    rank, 5.5e5, label=sprintf(
+      "%s\n%s", Rname, strftime(time, "%Y-%m-%d"))),
+    data=data.table(variable="N@0.1sec", ref.rank[rank<40]),
+    method=list(cex=0.7, "top.polygons"),
+    color="grey50")+
+  scale_y_log10("")+
+  scale_x_continuous("Commit rank over time", limits=c(NA, 59))
+(dl <- directlabels::direct.label(gg, "right.polygons"))
+png("computers-PR7912-timeline-compare.png", width=8, height=4, units="in", res=200)
 print(dl)
 dev.off()
