@@ -75,7 +75,7 @@ timeline.dt <- results.dt[
 , bisect := factor(Bisect, unique(Bisect))
 ][, let(
   rstart=to.min(start, start),
-  rend=to.min(start, end)
+  rend=to.min(end, start)
 ), by=host_year][]
 gg <- ggplot()+
   theme_bw()+

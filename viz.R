@@ -4,8 +4,8 @@ details.dt.list <- list()
 dot.dt.list <- list()
 common.dt.list <- list()
 results.dt.list <- list()
-(Bisect.dir.vec <- Sys.glob("data/tdhock-MacBook/bisect-2s-lim0.1/DT_by__fixed_in__4558/*"))
 (Bisect.dir.vec <- Sys.glob("data/dinf-thock-02i/bisect-2s-lim0.1/DT_by__fixed_in__4558/*"))
+(Bisect.dir.vec <- Sys.glob("data/tdhock-MacBook/bisect-2s-lim0.1-complete/DT_by__fixed_in__4558/*"))
 age.colors <- c(
   old="violet",
   between="blue",
