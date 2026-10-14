@@ -232,6 +232,13 @@ norm01 <- function(DT)DT[
   Bisect, rank=i.rank, variable, value=value_median, age
 ), on=.(rank_min<=rank, rank_max>=rank), nomatch=0L]))
 bg.color <- "grey"
+ref.rank <- rank.dt[
+  ref.dt,
+  on="commit",
+  nomatch=0L
+][grep("PR|Bef|Fast", Rname)]
+ref.color <- "deepskyblue"
+line.size <- 2
 viz <- animint(
   out.dir="viz",
   title="data.table git bisect performance analysis for PR7912, 0.01 sec time limit, N on log10 scale",
@@ -258,16 +265,27 @@ viz <- animint(
       fill=bg.color,
       data=data.table(HEAD.dt)[, panel := variable])+
     geom_vline(aes(
+      xintercept=rank),
+      color=ref.color,
+      size=1,
+      data=ref.rank)+
+    geom_vline(aes(
       xintercept=rank_change,
       key=1),
       color=status.colors[["change"]],
       showSelected=c("Bisect","Status"),
       data=data.table(change.dt, Status=St("change")))+
+    geom_label_aligned(aes(
+      rank, 0, label=sprintf(" %s ", Rname)),
+      color=ref.color,
+      alignment="horizontal",
+      data=data.table(panel="Bisect", ref.rank))+
     geom_segment(aes(
       ifelse(age=="old", rank_old, rank_min), med_value,
       xend=ifelse(age=="old", rank_max, rank_new), yend=med_value,
       key=age,
       color=age),
+      size=4,
       showSelected=c("age","Bisect"),
       data=data.table(lim.segs)[, panel := variable])+
     geom_segment(aes(
@@ -275,33 +293,38 @@ viz <- animint(
       y=y, yend=y),
       size=4,
       clickSelects="Bisect",
+      alpha_off=0.3,
       data=data.table(Bisect.range, panel = "Bisect"))+
     geom_text(aes(
-      x=(min(rank_old)+max(rank_new))/2, y=0,
+      x=(min(rank_old)+max(rank_new))/2, y=1,
       key=1,
       label=Bisect),
       showSelected="Bisect",
       data=data.table(Bisect.range, panel = "Bisect"))+
     geom_point(aes(
       rank, y, color=age),
-      clickSelects=c("age","Bisect"),
+      clickSelects="Bisect",
+      alpha_off=0.3,
+      showSelected="age",
       size=4,
       data=data.table(Bisect.ext, panel = "Bisect"))+
     geom_segment(aes(
       x=rank_min, xend=rank_max,
       y=y, yend=y),
       clickSelects="Bisect",
+      alpha_off=0.3,
       size=7,
       data=data.table(Bisect.range, panel = "Bisect"))+
     geom_point(aes(
       rank_change, y, fill=Status),
       clickSelects="Bisect",
       showSelected="Status",
+      alpha_off=0.3,
       size=5,
       data=data.table(change.dt, panel = "Bisect", Status=St("change")))+
     geom_line(aes(
       rank, value_median, color=age),
-      size=1,
+      size=line.size,
       showSelected="age",
       data=data.table(med.line.dt)[, panel := variable])+
     geom_point(aes(
@@ -353,7 +376,7 @@ viz <- animint(
       data=common.dt,
       color="grey",
       showSelected="Commit")+
-    geom_text(aes(
+    geom_label_aligned(aes(
       N, 0, label=sprintf("largest common N=%s", paste(N)),
       key=1),
       data=common.dt,
@@ -414,7 +437,7 @@ viz <- animint(
     geom_line(aes(
       rank_rel, value_norm, color=age,
       key=1),
-      size=1,
+      size=line.size,
       showSelected="Bisect",
       data=lines.zoom)+
     geom_point(aes(
@@ -447,6 +470,7 @@ viz <- animint(
       "Commit rank relative to bisect"),
   duration=list(
     Commit=1000,
+    age=1000,
     Bisect=1000)
 )
 viz

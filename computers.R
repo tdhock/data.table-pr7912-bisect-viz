@@ -8,7 +8,9 @@ Bisect.dir.vec <- grep(
   "install|cache",
   Sys.glob("data/*/bisect-2s-lim0.1-*/DT_by__fixed_in__4558/*"),
   value=TRUE)
-Bisect.dir.vec <- Sys.glob("data/*/bisect-2s-lim0.1/DT_by__fixed_in__4558/*")
+Bisect.dir.vec <- c(
+  Sys.glob("data/dinf-thock-02i/bisect-2s-lim0.1-install/DT_by__fixed_in__4558/*"),
+  Sys.glob("data/tdhock-MacBook/bisect-2s-lim0.1/DT_by__fixed_in__4558/*"))
 age.colors <- c(
   old="violet",
   between="blue",
@@ -71,7 +73,7 @@ status.colors <- c(
   change="grey50",
   "1"="white")
 St <- function(s)factor(s, names(status.colors))
-(results.dt <- rbindlist(results.dt.list)[, let(
+(results.dt <- rbindlist(results.dt.list, fill=TRUE, use.names = TRUE)[, let(
   Status = St(status)
 )][])
 
