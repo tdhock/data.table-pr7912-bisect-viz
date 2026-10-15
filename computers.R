@@ -11,6 +11,7 @@ Bisect.dir.vec <- grep(
 Bisect.dir.vec <- c(
   Sys.glob("data/dinf-thock-02i/bisect-2s-lim0.1-install/DT_by__fixed_in__4558/*"),
   Sys.glob("data/tdhock-MacBook/bisect-2s-lim0.1/DT_by__fixed_in__4558/*"))
+Bisect.dir.vec <- Sys.glob("data/*/bisect-2s-lim0.1-install/DT_by__fixed_in__4558/*")
 age.colors <- c(
   old="violet",
   between="blue",
@@ -23,7 +24,7 @@ for(Bisect.dir in Bisect.dir.vec){
   Bisect <- function(dt)dt[, let(
     Bisect = basename(Bisect.dir),
     run = sub(".*-", "", run.dir),
-    host_year = ifelse(
+    CPU_year = ifelse(
       grepl("dinf", basename(host.dir)),
       "2025", "2010")
   )][]
@@ -81,21 +82,26 @@ min.common.N <- min(common.dt$N)
 min.common.N <- 2^8
 min.common.N <- 2^16
 min.common.N <- 2^12
+(ref.dt <- fread("refs.csv"))
+(rank.dt <- unique(rbind(
+  results.dt[, .(time, commit)],
+  ref.dt[Rname %in% results.dt$version, .(time, commit)]
+))[order(time)][, rank := .I][, .(commit, rank)])
 details.common.N <- rank.dt[
   details.dt[N==min.common.N & version=="HEAD"],
   on="commit"]
 stats.common.N <- dcast(
   details.common.N,
-  host_year + run + rank ~ .,
+  CPU_year + run + rank ~ .,
   list(median, length),
   value.var="median")
 ggplot()+
   geom_line(aes(
-    rank, median_median, color=host_year),
+    rank, median_median, color=CPU_year),
     data=stats.common.N)+
   scale_y_log10()
 
-to.min <- function(x, start)(x-min(start))/60
+to.min <- function(x, start)(as.numeric(x)-as.numeric(min(start)))/60
 timeline.dt <- results.dt[
 , .SD[1]
 , by=.(Bisect, commit, start, end)
@@ -104,8 +110,18 @@ timeline.dt <- results.dt[
 ][, let(
   rstart=to.min(start, start),
   rend=to.min(end, start)
-), by=.(host_year, run)][]
+), by=.(CPU_year, run)][]
+timeline.mean <- timeline.dt[, .(
+  mean.seconds=mean(rend-rstart)*60,
+  max.rend=max(rend),
+  versions=.N
+), by=CPU_year]
 gg <- ggplot()+
+  timeline.dt[, ggtitle(sprintf(
+    "Overall time to compute %d git bisects (%d unique commits) on two CPUs",
+    length(unique(Bisect)),
+    length(unique(commit))
+  ))]+
   theme_bw()+
   geom_segment(aes(
     rstart, bisect,
@@ -116,21 +132,23 @@ gg <- ggplot()+
     rstart, bisect),
     shape=1,
     data=timeline.dt)+
+  geom_text(aes(
+    Inf, -Inf, label=sprintf(
+      "%d test runs, %.0f minutes total \nmean %.0f seconds to compile and test one commit ",
+      versions, max.rend, mean.seconds)),
+    vjust=-0.5,
+    hjust=1,
+    data=timeline.mean)+
   scale_y_discrete(
     "Bisect run (old-new)")+
   scale_x_continuous(
-    "Minutes from start of first git bisect (dot at start of each version tested)")+
-  facet_grid(host_year + run ~ ., labeller=label_both)
+    "Minutes from start of first git bisect (dot at start of test run for one commit)")+
+  facet_grid(CPU_year ~ ., labeller=label_both)
 png("computers-PR7912-minutes.png", width=8, height=3, units="in", res=200)
 print(gg)
 dev.off()
 
 
-(ref.dt <- fread("refs.csv"))
-(rank.dt <- unique(rbind(
-  results.dt[, .(time, commit)],
-  ref.dt[Rname %in% results.dt$version, .(time, commit)]
-))[order(time)][, rank := .I][, .(commit, rank)])
 results.rank <- rank.dt[results.dt, on="commit"]
 HEAD.dt <- results.rank[version=="HEAD"]
 
@@ -152,14 +170,14 @@ ggplot()+
 
 not.HEAD <- rank.dt[
   ref.dt[
-    results.rank[version!="HEAD"][, .(host_year, run, Rname=version, variable, value)],
+    results.rank[version!="HEAD"][, .(CPU_year, run, Rname=version, variable, value)],
     on="Rname"],
   on="commit"]
 med.line.list <- list(not.HEAD, HEAD.dt)
 (med.line.dt <- dcast(rbindlist(lapply(
   med.line.list,
-  function(DT)DT[, c("host_year", "run", "rank", "variable", "value")])),
-  host_year + run + rank + variable ~ .,
+  function(DT)DT[, c("CPU_year", "run", "rank", "variable", "value")])),
+  CPU_year + run + rank + variable ~ .,
   list(median, length)
   )[, age := Age("between")][])
 ggplot()+
@@ -199,7 +217,7 @@ gg <- ggplot()+
     color="grey",
     data=ref.rank)+
   geom_path(aes(
-    rank, 10^value_median, color=host_year, group=paste(host_year, run)),
+    rank, 10^value_median, color=CPU_year, group=paste(CPU_year, run)),
     data=med.line.dt[variable=="log10_N"])+
   geom_text(aes(
     rank, 10^y, label=sprintf(
@@ -218,9 +236,9 @@ dev.off()
 
 compare.dt <- rbind(
   med.line.dt[variable=="log10_N", .(
-    rank, variable="N@0.1sec", value=10^value_median, host_year, run)],
+    rank, variable="N@0.1sec", value=10^value_median, CPU_year, run)],
   stats.common.N[, .(
-    rank, variable=paste0("seconds@N=", min.common.N), value=median_median, host_year, run
+    rank, variable=paste0("seconds@N=", min.common.N), value=median_median, CPU_year, run
   )]
 )[order(rank)]
 ref.rank <- rank.dt[
@@ -236,10 +254,10 @@ gg <- ggplot()+
     color="grey",
     data=ref.rank)+
   geom_line(aes(
-    rank, value, color=host_year, group=paste(host_year, run)),
+    rank, value, color=CPU_year, group=paste(CPU_year, run)),
     data=compare.dt)+
   geom_point(aes(
-    rank, value, color=host_year, group=paste(host_year, run)),
+    rank, value, color=CPU_year, group=paste(CPU_year, run)),
     data=compare.dt)+
   facet_grid(variable ~ ., scales="free")+
   directlabels::geom_dl(aes(
