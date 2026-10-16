@@ -3,8 +3,8 @@ library(ggplot2)
 library(data.table)
 param.dt <- rowwiseDT(
   Test=, xmax=, width=, Nlab=,
-  "DT[by] fixed in #4558", 1e7, 7, "N = number of rows, 0.9*N = number of groups to summarize over",
-  "fread N=cols regression", 1e4, 3, "N = number of columns in CSV file")
+  "DT[by] fixed in #4558", 2e5, 5, "N = number of rows, 0.9*N = number of groups to summarize over",
+  "fread N=cols regression", 1e3, 3, "N = number of columns in CSV file")
 for(Test in names(atime.results)){
   param.row <- param.dt[Test, on="Test"]
   tres <- atime.results[[Test]]
@@ -12,7 +12,40 @@ for(Test in names(atime.results)){
   tpred <- predict(tref)
   prefix <- atime:::test_file_name(Test)
   png(paste0(prefix, ".png"), width=param.row$width, height=3, units="in", res=200)
-  gg <- plot(tpred)+
+  meas <- tpred$meas
+  pred <- tpred$pred
+  one <- pred[1]  
+  gg <- ggplot2::ggplot()+
+    ggplot2::theme_bw()+
+    ggplot2::facet_grid(unit ~ ., scales="free")+
+    ggplot2::geom_hline(ggplot2::aes(
+      yintercept=unit.value),
+      data=one)+
+    ggplot2::geom_text(ggplot2::aes(
+      0, unit.value, label=sprintf("limit=%s sec.",unit.value)),
+      hjust=0,
+      size=3,
+      vjust=1.2, 
+      data=one)+
+    ggplot2::geom_ribbon(ggplot2::aes(
+      N, ymin=min, ymax=max, fill=expr.name),
+      data=meas[unit=="seconds"],
+      alpha=0.5)+
+    ggplot2::geom_line(ggplot2::aes(
+      N, empirical, color=expr.name),
+      data=meas)+
+    ggplot2::geom_point(ggplot2::aes(
+      N, unit.value, color=expr.name),
+      data=pred,
+      shape=21,
+      fill="white")+
+    directlabels::geom_dl(ggplot2::aes(
+      N, unit.value, 
+      label=label,
+      color=expr.name),
+      data=pred,
+      method=list(cex=0.5, directlabels::polygon.method("top",offset.cm=0.5)))+
+    ggplot2::theme(legend.position="none")+
     ggtitle(Test)+
     facet_null()+
     scale_x_log10(param.row$Nlab)+
@@ -21,7 +54,7 @@ for(Test in names(atime.results)){
       limits=c(0.002, 0.3))+
     coord_cartesian(
       xlim=c(10, param.row$xmax))
-  print(gg)
+  print(gg)  
   dev.off()
 }
 
