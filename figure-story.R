@@ -178,7 +178,7 @@ Bisect.colors <- c(
   ifelse(names(Bisect.colors)=="previous stage", 2, 1),
   names(Bisect.colors)))
 gg <- ggplot()+
-  ggtitle("Discovering changes in performance, one test case for R data.table")+
+  ggtitle("Discovering changes in performance, R data.table test case: DT[by] fixed in #4558")+
   theme_bw()+
   scale_color_manual(
     "Computed in",
