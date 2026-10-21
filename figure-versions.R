@@ -3,7 +3,7 @@ library(ggplot2)
 library(data.table)
 param.dt <- rowwiseDT(
   Test=, xmax=, width=, Nlab=,
-  "DT[by] fixed in #4558", 2e5, 5, "N = number of rows, 0.9*N = number of groups to summarize over",
+  "DT[by] fixed in #4558", 2e5, 5, "N = number of rows, 0.9*N = groups to summarize over",
   "fread N=cols regression", 1e3, 3, "N = number of columns in CSV file")
 for(Test in names(atime.results)){
   param.row <- param.dt[Test, on="Test"]
@@ -13,6 +13,7 @@ for(Test in names(atime.results)){
   prefix <- atime:::test_file_name(Test)
   png(paste0(prefix, ".png"), width=param.row$width, height=3, units="in", res=200)
   meas <- tpred$meas
+  msec <- meas[unit=="seconds"]
   pred <- tpred$pred
   one <- pred[1]  
   gg <- ggplot2::ggplot()+
@@ -29,11 +30,11 @@ for(Test in names(atime.results)){
       data=one)+
     ggplot2::geom_ribbon(ggplot2::aes(
       N, ymin=min, ymax=max, fill=expr.name),
-      data=meas[unit=="seconds"],
+      data=msec,
       alpha=0.5)+
     ggplot2::geom_line(ggplot2::aes(
       N, empirical, color=expr.name),
-      data=meas)+
+      data=msec)+
     ggplot2::geom_point(ggplot2::aes(
       N, unit.value, color=expr.name),
       data=pred,
