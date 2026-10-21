@@ -1,5 +1,13 @@
 Code for computing bisect data in [[https://github.com/Rdatatable/data.table/pull/7912][PR7912]].
 
+- First run =atime::bisect()=
+- Then run [[file:refs.R]] to copy data from data.table/.ci/atime/bisect to this repo.
+- Then run [[file:viz.R]] to create interactive figure and
+
+[[file:viz-PR7912-minutes.png]]
+
+[[file:viz-PR7912-timeline.png]]
+
 ** Figures for asymptotic performance testing submission, SEIP’27
 
 [[file:figure-versions-data.R]] makes [[file:figure-versions-data.rds]]
