@@ -1,5 +1,7 @@
 Code for computing bisect data in [[https://github.com/Rdatatable/data.table/pull/7912][PR7912]].
 
+** Figures for asymptotic performance testing submission, SEIP’27
+
 [[file:figure-versions-data.R]] makes [[file:figure-versions-data.rds]]
 
 [[file:figure-versions.R]] makes
@@ -7,3 +9,15 @@ Code for computing bisect data in [[https://github.com/Rdatatable/data.table/pul
 [[file:figure-versions-DT_by__fixed_in__4558.png]]
 
 [[file:figure-versions-fread_N_cols_regression.png]]
+
+[[file:computers.R]] makes
+
+[[file:computers-PR7912-minutes.png]]
+
+[[file:computers-PR7912-timeline.png]]
+
+[[file:computers-PR7912-timeline-compare.png]]
+
+[[file:figure-story.R]] makes
+
+[[file:figure-story-PR7912.png]]
