@@ -1,1 +1,9 @@
 Code for computing bisect data in [[https://github.com/Rdatatable/data.table/pull/7912][PR7912]].
+
+[[file:figure-versions-data.R]] makes [[file:figure-versions-data.rds]]
+
+[[file:figure-versions.R]] makes
+
+[[file:figure-versions-DT_by__fixed_in__4558.png]]
+
+[[file:figure-versions-fread_N_cols_regression.png]]

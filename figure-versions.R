@@ -11,7 +11,8 @@ for(Test in names(atime.results)){
   tref <- atime::references_best(tres)
   tpred <- predict(tref)
   prefix <- atime:::test_file_name(Test)
-  png(paste0(prefix, ".png"), width=param.row$width, height=3, units="in", res=200)
+  out.png <- sprintf("figure-versions-%s.png", prefix)
+  png(out.png, width=param.row$width, height=3, units="in", res=200)
   meas <- tpred$meas
   msec <- meas[unit=="seconds"]
   pred <- tpred$pred
